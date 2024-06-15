@@ -30,7 +30,7 @@ def get_all_expirations(date, symbol):
 
     return expirations_
 
-# tmp = get_all_expirations('20240615', 'TSLA')
+# tmp = get_all_expirations('20240614', 'TSLA')
 
 # tmp
 # ----------------------------------------------------------------------
@@ -198,6 +198,8 @@ def pkl_exists(symbol):
 
 # update_trades('LAC')
 # ----------------------------------------------------------------------
+# If no data exists for symbol, download and store trades for the last 30 days.
+
 # Removes trades for most recent date stored (in case it's incomplete).
 # Then, adds trades from most recent date stored to present.
 
@@ -253,174 +255,3 @@ def update_all_symbols():
 
 
 
-
-# ----------------------------------------------------------------------
-
-# symbol = 'JD'
-
-# add_trades_for_date('20240520', symbol)
-# add_trades_for_date('20240521', symbol)
-# add_trades_for_date('20240522', symbol)
-# add_trades_for_date('20240523', symbol)
-# add_trades_for_date('20240524', symbol)
-# ----------------------------------------------------------------------
-
-# initial_date = 20240506
-
-# for date in range(initial_date, initial_date + 5):
-#     # print(f'Adding data for {date}')
-#     add_trades_for_date(str(date), symbol)
-# ----------------------------------------------------------------------
-
-# def date_range(start_date, num_days=5):
-#     start_date = pd.to_datetime(start_date, format='%Y%m%d')
-#     return pd.date_range(start_date, periods=num_days).strftime('%Y%m%d').tolist()
-
-# pd.date_range(start='2023-12-01', end='2024-01-01').strftime('%Y%m%d').tolist()
-
-# symbol = 'BILI'
-
-# for date in date_range('20240429', 30):
-#     add_trades_for_date(str(date), symbol)
-
-# symbol = 'LAC'
-
-# for date in date_range('20240101', 2):
-#     result = add_trades_for_date(str(date), symbol)
-
-# show_available_dates('LAC')    
-
-# add_trades_for_date(str(20240419), symbol)
-
-
-# get date 30 days ago
-
-# date = pd.to_datetime('today') - pd.DateOffset(days=30)
-
-# date = date.strftime('%Y%m%d')
-
-# def days_ago(num_days):
-#     date = pd.to_datetime('today') - pd.DateOffset(days=num_days)
-#     return date.strftime('%Y%m%d')
-
-# days_ago(30)
-
-
-# symbol = 'ATMU'
-
-# for date in date_range(days_ago(30), 40):
-#     result = add_trades_for_date(str(date), symbol)
-
-
-# for date in date_range('20240101', 30*5):
-#     result = add_trades_for_date(str(date), symbol)
-
-
-# date = '20240428'
-
-# add_trades_for_date('20240428', symbol)
-
-
-
-# for date in pd.date_range(start='2023-12-01', end='2024-01-01').strftime('%Y%m%d').tolist():
-#     add_trades_for_date(str(date), symbol)
-
-
-
-# symbol = 'JD'
-
-# for date in pd.date_range(start='2024-05-25', end='2024-06-01').strftime('%Y%m%d').tolist():
-#     add_trades_for_date(str(date), symbol)
-
-
-# show_available_dates('JD')
-
-# show_available_dates('ATMU')
-# add_trades_for_date('20240529', 'ATMU')
-
-# ----------------------------------------------------------------------
-
-# Get 'ATMU' trades for '20240321'
-
-# df = get_all_trades('20240321', 'ATMU')
-
-# df['premium'] = df['size'] * df['price'] * 100
-
-# columns_to_drop = ['No data for the specified timeframe and chain. Debug code 1', 'ext_condition1', 'ext_condition2', 'ext_condition3', 'ext_condition4', 'ask_condition', 'bid_condition', 'records_back', 'condition_flags', 'volume_type' ]
-
-# df = df.drop(columns=columns_to_drop)
-
-# df.iloc[0]
-
-# df.drop(columns=['No data for the specified timeframe and chain. Debug code 1', 'ext_condition1', 'ext_condition2', 'ext_condition3', 'ext_condition4', 'ask_condition', 'bid_condition', 'records_back', 'condition_flags', 'volume_type' ])
-
-# df['ask_condition'].unique()
-# df['records_back'].unique()
-# df['condition_flags'].unique()
-# df['volume_type'].unique()
-
-# df.drop(columns=columns_to_drop)
-
-# df[df['premium'] > 10000]
-
-# Write this using query syntax: df[df['premium'] > 100]
-
-# df.query('premium > 100')
-
-
-
-
-
-
-
-
-
-
-
-
-# pkl_exists('RUN')
-
-# symbol = 'HPQ'
-
-
-# df = pd.read_pickle('pkl/JMIA.pkl')
-
-# ----------------------------------------------------------------------
-
-# update_trades('HOOD')
-
-# update_trades('HPQ')
-
-# update_trades('JMIA')
-
-# update_trades_alt('JMIA')
-
-
-# ----------------------------------------------------------------------
-
-
-# update_trades_alt('GME')
-
-# ----------------------------------------------------------------------
-
-
-# symbol = 'HOOD'
-
-# for date in pd.date_range(start='2024-05-01', end='2024-05-19').strftime('%Y%m%d').tolist():
-    # add_trades_for_date(str(date), symbol)
-
-# pd.date_range(start='2024-05-01', periods=5, freq='D')
-
-# for date in pd.date_range(start='2024-05-01', end='2024-05-19'):
-#     date = date.strftime('%Y%m%d')
-#     add_trades_for_date(date, symbol)
-
-# for date in pd.date_range(start='2024-04-01', end='2024-04-30'):
-#     date = date.strftime('%Y%m%d')
-#     add_trades_for_date(date, symbol)
-
-# symbol = 'JD'
-
-# for date in pd.date_range(start='2024-04-01', end='2024-04-28'):
-#     date = date.strftime('%Y%m%d')
-#     add_trades_for_date(date, symbol)
