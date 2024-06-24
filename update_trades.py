@@ -9,10 +9,31 @@ import pytz
 
 # ----------------------------------------------------------------------
 
-trade_conditions = pd.read_json('TradeConditions.json')
+# trade_conditions = pd.read_json('TradeConditions.json')
 
 # ----------------------------------------------------------------------
 # Get all expirations for date
+
+# def get_all_expirations(date, symbol):
+
+#     url = "http://127.0.0.1:25510/v2/list/expirations"
+
+#     querystring = { "root": symbol }
+
+#     headers = {"Accept": "application/json"}
+
+#     response = requests.get(url, headers=headers, params=querystring)
+
+
+#     response.status_code
+
+
+#     expirations = pd.DataFrame(response.json()['response'], columns=response.json()['header']['format'])
+ 
+#     expirations_ = expirations[expirations['date'] >= int(date)]
+
+#     return expirations_
+
 
 def get_all_expirations(date, symbol):
 
@@ -22,19 +43,36 @@ def get_all_expirations(date, symbol):
 
     headers = {"Accept": "application/json"}
 
-    response = requests.get(url, headers=headers, params=querystring)
+    try:
+        response = requests.get(url, headers=headers, params=querystring)
 
-    expirations = pd.DataFrame(response.json()['response'], columns=response.json()['header']['format'])
- 
-    expirations_ = expirations[expirations['date'] >= int(date)]
+        response.raise_for_status()  # Raises a HTTPError if the status is 4xx, 5xx
 
-    return expirations_
+        expirations = pd.DataFrame(response.json()['response'], columns=response.json()['header']['format'])
+
+        expirations_ = expirations[expirations['date'] >= int(date)]
+        return expirations_
+
+    # except requests.exceptions.HTTPError as errh:
+    #     print ("HTTP Error:",errh)
+    #     return None
+    # except requests.exceptions.ConnectionError as errc:
+    #     print ("Error Connecting:",errc)
+    #     return None
+    # except requests.exceptions.Timeout as errt:
+    #     print ("Timeout Error:",errt)
+    #     return None
+    except requests.exceptions.RequestException as err:
+        print ("Something went wrong with the request:",err)
+        return None
 
 # tmp = get_all_expirations('20240614', 'TSLA')
-
-# tmp
 # ----------------------------------------------------------------------
 # Get all trades for a given symbol and expiration that were made on 'date'.
+
+# symbol = 'TSLA'
+# expiration = '20260116'
+# date = '20240614'
 
 def trade_quote(symbol, expiration, date):
 
@@ -46,36 +84,61 @@ def trade_quote(symbol, expiration, date):
 
     response = requests.get(url, headers=headers, params=querystring)
     
+    if response.headers['Next-page'] != 'null':
+        print('Next page exists')
+        print(f'{symbol=} {expiration=} {date=}')
+    
     df = pd.read_csv(io.StringIO(response.content.decode('utf-8')))    
 
     return df
 
 # df = trade_quote('TSLA', '20260116', '20240614')
-
-# df
-
 # ----------------------------------------------------------------------
 # Get all trades for date, symbol.
+
+# def get_all_trades(date, symbol):
+
+#     print(f'Retrieving trades for {date} and {symbol}')
+
+#     expirations = get_all_expirations(date, symbol)
+
+#     dfs = []
+
+#     for expiration in expirations['date']:
+#         print(f'    Retrieving data for expiration {expiration}')
+#         dfs.append(trade_quote(symbol, str(expiration), date))
+
+#     result = pd.concat(dfs)
+
+#     return result
 
 def get_all_trades(date, symbol):
 
     print(f'Retrieving trades for {date} and {symbol}')
 
-    expirations = get_all_expirations(date, symbol)
+    try:
 
-    dfs = []
+        expirations = get_all_expirations(date, symbol)
 
-    for expiration in expirations['date']:
-        print(f'    Retrieving data for expiration {expiration}')
-        dfs.append(trade_quote(symbol, str(expiration), date))
+        if expirations is None:
+            print(f"No expirations found for {date} and {symbol}")
+            return None
 
-    result = pd.concat(dfs)
+        dfs = []
 
-    return result
+        for expiration in expirations['date']:
+            print(f'    Retrieving data for expiration {expiration}')
+            dfs.append(trade_quote(symbol, str(expiration), date))
+
+        result = pd.concat(dfs)
+
+        return result
+
+    except Exception as e:
+        print(f"An error occurred while retrieving trades for {date} and {symbol}: {str(e)}")
+        return None
 
 # df = get_all_trades('20240614', 'LAC')
-
-# df
 
 # ----------------------------------------------------------------------
 # Store trades locally
@@ -90,7 +153,10 @@ def add_trades_for_date(date, symbol):
     if os.path.exists(path) == False:
         new = get_all_trades(date, symbol)
 
-        if len(new) > 0:
+        if new is None:
+            print(f"No trades found for {symbol} on {date}")
+            return None
+        elif len(new) > 0:
             new.to_pickle(path)
             return new
         else:
@@ -142,7 +208,7 @@ def show_available_dates(symbol):
 
     return pd.DataFrame(df['date'].unique()).sort_values(by=0)
 
-# show_available_dates('TSLA')
+# show_available_dates('AAPL')
 # ----------------------------------------------------------------------
 def get_most_recent_date(symbol):
 
@@ -228,7 +294,7 @@ def update_trades_alt(symbol):
         for date in pd.date_range(start=start_date, end=end_date):
             add_trades_for_date(date.strftime('%Y%m%d'), symbol)
 
-# update_trades_alt('LAC')
+# update_trades_alt('QRVO')
 # ----------------------------------------------------------------------
 
 def get_all_symbols():
@@ -252,6 +318,234 @@ def update_all_symbols():
         update_trades_alt(symbol)
 
 # update_all_symbols()
+# ----------------------------------------------------------------------
+
+# def list_roots_stock():
+
+#     url = 'http://127.0.0.1:25510/v2/list/roots/stock'
+
+#     headers = {"Accept": "application/json"}
+
+#     response = requests.get(url, headers=headers)
+
+#     roots = pd.DataFrame(response.json()['response'], columns=response.json()['header']['format'])
+     
+#     return roots
+
+# roots_stocks = list_roots_stock()
+
+# roots_stocks
+
+# roots = roots_stocks
+
+# roots['root']
+
+# ----------------------------------------------------------------------
+
+import time
+
+def all_trades(trade_date, roots):
+        
+    i = 0
+
+    start_time = time.time()
+        
+    for root in roots['root']:
+        print(f'Retrieving trades for {root} {i} of {len(roots)}. Time elapsed: {str(datetime.timedelta(seconds=(time.time() - start_time)))[:7]}')
+        
+        df = get_all_trades(trade_date, root)
+
+        i += 1
+
+        if df is None:
+            print(f"No trades found for {root} on {trade_date}")
+            with open('pkl-all/no-trades.txt', 'a') as file:
+                file.write(root + '\n')            
+        else:
+            df.to_pickle(f'pkl-all/{root}.pkl')
+# ----------------------------------------------------------------------
+# roots_stocks = list_roots_stock()
+
+# all_trades('20240618', roots_stocks)
+# ----------------------------------------------------------------------
+
+# df = get_all_trades('20240618', 'AAA')
+
+# type(df)
+
+
+# date = '20240618'
+# symbol = 'AAA'
+
+# trade_date = date
+# ----------------------------------------------------------------------
+def all_stocks_all_trades(trade_date, stocks):
+
+    i = 0
+
+    start_time = time.time()
+
+    no_trades_path = f'pkl/no-trades-{trade_date}.txt'
+
+    with open(no_trades_path, 'w') as file:
+        file.write('')
+
+    for stock in stocks:
+
+        elapsed_time = str(datetime.timedelta(seconds=(time.time() - start_time)))[:7]
+
+        print(f'Retrieving trades for {stock}. Time elapsed: {elapsed_time}')
+
+        df = add_trades_for_date(trade_date, stock)
+
+        if df is None:
+            print(f"No trades found for {stock} on {trade_date}")
+            with open(no_trades_path, 'a') as file:
+                file.write(stock + '\n')
+
+# all_stocks_all_trades('20240614', roots_stocks['root'])
+# ----------------------------------------------------------------------
+# trade_date = '20240617'
+# symbol = 'AAA'
+# stock = 'AAA'
+# date = trade_date
+# ----------------------------------------------------------------------
+
+# def list_roots_option():
+
+#     url = 'http://127.0.0.1:25510/v2/list/roots/option'
+
+#     headers = {"Accept": "application/json"}
+
+#     response = requests.get(url, headers=headers)
+
+#     roots = pd.DataFrame(response.json()['response'], columns=response.json()['header']['format'])
+     
+#     return roots
+
+# roots_stocks = list_roots_stock()
+
+# roots_options = list_roots_option()
+
+# roots_stocks
+
+# roots_options
+
+# rows where 'root' starts with 'ZV'
+
+# roots[roots['root'].str.startswith('ZV')]
+
+# ----------------------------------------------------------------------
+
+def list_contracts(start_date):
+
+    url = "http://127.0.0.1:25510/v2/list/contracts/option/trade"
+
+    querystring = { "start_date": start_date }
+
+    headers = {"Accept": "application/json"}
+
+    try:
+        response = requests.get(url, headers=headers, params=querystring)
+
+        response.raise_for_status()  # Raises a HTTPError if the status is 4xx, 5xx
+        
+        df = pd.DataFrame(response.json()['response'], columns=response.json()['header']['format'])
+
+        return df
+
+    except requests.exceptions.RequestException as err:
+        print ("Something went wrong with the request:",err)
+        return None
+
+# contracts = list_contracts('20240620')
+
+# ls = contracts[['root', 'expiration']].drop_duplicates()
+
+# ls = ls.reset_index(drop=True)
+
+# ----------------------------------------------------------------------
+# start_time = time.time()
+
+# tmp = pd.DataFrame()
+
+# for index, row in ls.iterrows():
+
+#     df = trade_quote(symbol=row['root'], expiration=row['expiration'], date='20240620')
+    
+#     tmp = pd.concat([tmp, df])
+    
+#     if index % 10 == 0:
+#         elapsed_time = str(datetime.timedelta(seconds=(time.time() - start_time)))[:7]
+#         print(f'{index} of {len(ls)} completed. Time elapsed: {elapsed_time}')
+
+# elapsed_time = str(datetime.timedelta(seconds=(time.time() - start_time)))[:7]
+
+# tmp.query('root == "AAPL"')
+
+# tmp.to_pickle('pkl/tmp.pkl')
+
+# ----------------------------------------------------------------------
+
+# contracts.query('root == "AAPL"').query('expiration == 20241018')
 
 
 
+# tmp = contracts[['root', 'expiration']].drop_duplicates()
+
+# tmp.query('root == "AAPL"')
+
+# tmp
+
+# ----------------------------------------------------------------------
+
+# ls = ls.reset_index(drop=True)
+
+# for index, row in ls.iterrows():
+#     print(f'{index} of {len(ls)} completed')
+
+
+
+
+
+# import pprint
+
+# def trade_quote_alt(symbol, expiration, date):
+
+#     url = "http://127.0.0.1:25510/v2/bulk_hist/option/trade_quote"
+    
+#     querystring = { "root": symbol, "exp": expiration, "start_date": date, "end_date": date }
+
+#     headers = {"Accept": "application/json"}
+
+#     response = requests.get(url, headers=headers, params=querystring)
+
+#     pprint.pprint(response.json(), depth=1)
+
+#     pprint.pprint(response.json()['header'], depth=1)
+
+#     pprint.pprint(response.json()['header']['format'], depth=1)
+
+#     next_page = response.json()['header']['next_page']
+
+#     if next_page != 'null':
+#         print('Next page exists')
+
+
+
+#     pprint.pprint(response.json()['response'], depth=1)
+
+#     pd.DataFrame(response.json()['response'], columns=response.json()['header']['format'])
+
+#     type(response.json()['response'])
+
+#     pprint.pprint(response.json()['response'][0])
+    
+    
+
+
+    
+    
+#     # df = pd.read_csv(io.StringIO(response.content.decode('utf-8')))    
+
+#     return df

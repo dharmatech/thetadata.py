@@ -1,5 +1,9 @@
 /archive
 /ATMU-large-trades-2024-03-21.py
 /pkl
+pkl-all
 /thetadata_test.py
 * copy.py
+no-trades-*.txt
+*.pyc
+/out

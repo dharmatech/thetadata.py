@@ -3,6 +3,9 @@ import glob
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+
+import store
+import process_dataframe
 # ----------------------------------------------------------------------
 @st.cache_data
 def load_conditions():
@@ -16,93 +19,120 @@ def load_trades(symbol):
     # return pd.read_pickle(f'{symbol}.pkl')
     return pd.read_pickle(path)
 # ----------------------------------------------------------------------
-def saved_symbols():
-    files = glob.glob('pkl/*.pkl')
+# def saved_symbols():
+#     files = glob.glob('pkl/*.pkl')
 
-    files = [file for file in files if '-' not in file]
+#     files = [file for file in files if '-' not in file]
 
-    files = [os.path.basename(file) for file in files]
+#     files = [os.path.basename(file) for file in files]
 
-    symbols = [os.path.splitext(file)[0] for file in files]
+#     symbols = [os.path.splitext(file)[0] for file in files]
 
-    return symbols
+#     return symbols
 # ----------------------------------------------------------------------
-symbols = saved_symbols()
+import store
+
+symbols = store.saved_symbols()
 
 symbol = st.sidebar.selectbox('Symbol', symbols)
 
 df = load_trades(symbol)
 
-# df = load_trades('TSLA')
+# df = load_trades('NVDA')
 
 # df[columns]
 
 # df.query('premium > 40000')[columns].tail(30)
 
+df['size'] = df['size'].astype(int)
+
+df['premium'] = df['size'] * df['price'] * 100
+
+df['premium'] = df['premium'].astype(int)
+
+# def find_premium_threshold_alt(df, pct):
+#     sorted = df['premium'].sort_values(ascending=False)
+#     i = int((pct / 100) * len(sorted))
+#     return sorted.iloc[i]
+
+premium_pct_threshold = st.sidebar.number_input('% threshold for premium', value=1.0, min_value=0.0001, format='%f', help='''
+Filter trades by premium.
+                    
+For example, if this number is 5%, then the top 5% of trades by premium are included in the analysis.
+                                                ''')
+
+premium_threshold = process_dataframe.find_premium_threshold_alt(df, premium_pct_threshold)
+
+st.sidebar.write(f'Premium threshold: {premium_threshold:,}')
+
+df = df.query(f'premium > {premium_threshold}')
+
 # ----------------------------------------------------------------------
 
-def process_dataframe(df):
-    df['date_'] = pd.to_datetime(df['date'].astype(int).astype(str), format='%Y%m%d')
+# def process_dataframe(df):
+#     df['date_'] = pd.to_datetime(df['date'].astype(int).astype(str), format='%Y%m%d')
 
-    df['size'] = df['size'].astype(int)
+#     df['size'] = df['size'].astype(int)
 
-    df['premium'] = df['size'] * df['price'] * 100
+#     df['premium'] = df['size'] * df['price'] * 100
 
-    df['premium'] = df['premium'].astype(int)
+#     df['premium'] = df['premium'].astype(int)
 
-    df = pd.merge(df, trade_conditions[['Code', 'Name']], left_on='condition', right_on='Code', how='left')
+#     df = pd.merge(df, trade_conditions[['Code', 'Name']], left_on='condition', right_on='Code', how='left')
 
-    df = df.drop(columns=['Code'])
+#     df = df.drop(columns=['Code'])
 
-    df = df.rename(columns={'Name': 'condition_name'})
+#     df = df.rename(columns={'Name': 'condition_name'})
 
-    df['strike_'] = df['strike'] / 100 / 10    
+#     df['strike_'] = df['strike'] / 100 / 10    
 
-    df['ask_sub_price'] = df['ask'] - df['price']
+#     df['ask_sub_price'] = df['ask'] - df['price']
 
-    df['price_sub_bid'] = df['price'] - df['bid']
+#     df['price_sub_bid'] = df['price'] - df['bid']
 
-    df.loc[df['ask_sub_price'] < df['price_sub_bid'], 'side'] = 'buy'
+#     df.loc[df['ask_sub_price'] < df['price_sub_bid'], 'side'] = 'buy'
 
-    df.loc[df['ask_sub_price'] > df['price_sub_bid'], 'side'] = 'sell'
+#     df.loc[df['ask_sub_price'] > df['price_sub_bid'], 'side'] = 'sell'
 
-    df.loc[df['ask_sub_price'].round(3) == df['price_sub_bid'].round(3), 'side'] = 'eq'
+#     df.loc[df['ask_sub_price'].round(3) == df['price_sub_bid'].round(3), 'side'] = 'eq'
 
-    df.loc[(df['right'] == 'C') & (df['side'] == 'buy'),  'bb'] = '🟢'
-    df.loc[(df['right'] == 'C') & (df['side'] == 'sell'), 'bb'] = '🔴'
+#     df.loc[(df['right'] == 'C') & (df['side'] == 'buy'),  'bb'] = '🟢'
+#     df.loc[(df['right'] == 'C') & (df['side'] == 'sell'), 'bb'] = '🔴'
 
-    df.loc[(df['right'] == 'P') & (df['side'] == 'buy'),  'bb'] = '🔴'
-    df.loc[(df['right'] == 'P') & (df['side'] == 'sell'), 'bb'] = '🟢'
+#     df.loc[(df['right'] == 'P') & (df['side'] == 'buy'),  'bb'] = '🔴'
+#     df.loc[(df['right'] == 'P') & (df['side'] == 'sell'), 'bb'] = '🟢'
 
 
-    df.loc[(df['right'] == 'C') & (df['side'] == 'buy'),  'bb_'] = 'bullish'
-    df.loc[(df['right'] == 'C') & (df['side'] == 'sell'), 'bb_'] = 'bearish'
-    df.loc[(df['right'] == 'P') & (df['side'] == 'buy'),  'bb_'] = 'bearish'
-    df.loc[(df['right'] == 'P') & (df['side'] == 'sell'), 'bb_'] = 'bullish'
+#     df.loc[(df['right'] == 'C') & (df['side'] == 'buy'),  'bb_'] = 'bullish'
+#     df.loc[(df['right'] == 'C') & (df['side'] == 'sell'), 'bb_'] = 'bearish'
+#     df.loc[(df['right'] == 'P') & (df['side'] == 'buy'),  'bb_'] = 'bearish'
+#     df.loc[(df['right'] == 'P') & (df['side'] == 'sell'), 'bb_'] = 'bullish'
 
-    df.loc[(df['side'] == 'eq'), 'bb_'] = 'neutral'
+#     df.loc[(df['side'] == 'eq'), 'bb_'] = 'neutral'
 
-    df['ask_bid_diff'] = df['ask'] - df['bid']
+#     df['ask_bid_diff'] = df['ask'] - df['bid']
 
-    df.loc[df['side'] == 'buy',  'bb_confidence'] = (df[df['side'] == 'buy' ]['ask_bid_diff'] - df[df['side'] == 'buy' ]['ask_sub_price']) / df[df['side'] == 'buy' ]['ask_bid_diff']
-    df.loc[df['side'] == 'sell', 'bb_confidence'] = (df[df['side'] == 'sell']['ask_bid_diff'] - df[df['side'] == 'sell']['price_sub_bid']) / df[df['side'] == 'sell']['ask_bid_diff']
+#     df.loc[df['side'] == 'buy',  'bb_confidence'] = (df[df['side'] == 'buy' ]['ask_bid_diff'] - df[df['side'] == 'buy' ]['ask_sub_price']) / df[df['side'] == 'buy' ]['ask_bid_diff']
+#     df.loc[df['side'] == 'sell', 'bb_confidence'] = (df[df['side'] == 'sell']['ask_bid_diff'] - df[df['side'] == 'sell']['price_sub_bid']) / df[df['side'] == 'sell']['ask_bid_diff']
 
-    df['bb_confidence'] = df['bb_confidence'].round(3)
+#     df['bb_confidence'] = df['bb_confidence'].round(3)
 
-    df['expiration_'] = pd.to_datetime(df['expiration'].astype(int).astype(str), format='%Y%m%d')
+#     df['expiration_'] = pd.to_datetime(df['expiration'].astype(int).astype(str), format='%Y%m%d')
 
-    df['ms_of_day_'] = pd.to_timedelta(df['ms_of_day'], unit='ms')
+#     df['ms_of_day_'] = pd.to_timedelta(df['ms_of_day'], unit='ms')
 
-    df['datetime'] = df['date_'] + df['ms_of_day_']
+#     df['datetime'] = df['date_'] + df['ms_of_day_']
 
-    df['dte'] = (df['expiration_'] - df['date_']).dt.days
+#     df['dte'] = (df['expiration_'] - df['date_']).dt.days
 
-    # Convert 'datetime' to string format
-    df['datetime_str'] = df['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S')    
+#     # Convert 'datetime' to string format
+#     df['datetime_str'] = df['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S')    
 
-    return df
+#     return df
 
-df = process_dataframe(df)
+import process_dataframe
+
+df = process_dataframe.process_dataframe(df)
 
 df['exp_str'] = df['expiration_'].astype(str)
 
@@ -513,3 +543,347 @@ for _, row in merged_df.iterrows():
 # ----------------------------------------------------------------------
 
 st.plotly_chart(fig, use_container_width=True)
+
+
+
+# ----------------------------------------------------------------------
+
+len(df)
+
+# rows where premium > 100000
+
+# df['premium']
+
+len(df.query('premium > 100000')) / len(df) * 100
+
+len(df.query('premium > 10000')) / len(df) * 100
+
+df['premium'].max()
+
+pct = 5
+
+def find_premium_threshold(df, pct):
+    a = 0
+    c = df['premium'].max()
+
+    while True:
+
+        b = (a + c) / 2
+
+        # print(f'a: {a} b: {b}, c: {c}')
+
+        # print(f'a: {int(a):20}')
+        # print(f'b: {int(b):20}')
+        # print(f'c: {int(c):20}')
+
+        # print()
+
+        # len(df.query('premium > 10000')) / len(df) * 100
+
+        result = len(df.query(f'premium > {b}')) / len(df) * 100
+
+        if abs(result - pct) < 0.1:
+            return b
+        elif result < pct:   # result pct was too low.  premium guess was too high.
+            # a = b
+            c = b
+        elif result > pct:   # result pct was too high. premium guess was too low.
+            # c = b
+            a = b
+
+a = 185400000.0
+b = 185400000.0
+c = 185400000.0
+
+premium_threshold_5_pct = find_premium_threshold(df, 5)
+
+premium_threshold_2_pct = find_premium_threshold(df, 1)
+
+        # if len(df.query(f'premium > {b}')) > threshold:
+
+df.query(f'premium > {premium_threshold_5_pct}').sort_values(by=['date', 'ms_of_day'])
+
+df.query(f'premium > {premium_threshold_2_pct}').tail(30)[columns]
+
+df[columns]
+
+symbols
+
+len(symbols)
+
+# ----------------------------------------------------------------------
+
+len(df)
+
+def find_premium_threshold_alt(df, pct):
+    # sorted_premiums = df['premium'].sort_values(ascending=False).values
+    sorted_premiums = df['premium'].sort_values().values
+    total_rows = len(sorted_premiums)
+    target_rows = total_rows * (pct / 100)
+
+    # left, right = 0, total_rows - 1
+
+    left = 0
+    right = total_rows - 1
+
+    while left <= right:
+        mid = (left + right) // 2
+        if mid < target_rows:
+            right = mid - 1
+        else:
+            left = mid + 1
+
+    return sorted_premiums[right]
+
+find_premium_threshold(df, 5)
+
+find_premium_threshold_alt(df, 5)
+
+# ----------------------------------------------------------------------
+
+sorted = df['premium'].sort_values(ascending=False)
+
+i = int((5 / 100) * len(sorted))
+
+sorted.iloc[i]
+
+# def find_premium_threshold_alt(df, pct):
+#     sorted = df['premium'].sort_values(ascending=False)
+#     i = int((pct / 100) * len(sorted))
+#     return sorted.iloc[i]
+
+find_premium_threshold(df, 2)
+find_premium_threshold_alt(df, 2)
+# ----------------------------------------------------------------------
+ls = []
+
+for symbol in symbols:
+    print(symbol)
+
+    df = load_trades(symbol)
+
+    df['size'] = df['size'].astype(int)
+
+    df['premium'] = df['size'] * df['price'] * 100
+
+    df['premium'] = df['premium'].astype(int)    
+
+    premium_threshold_5_pct = find_premium_threshold_alt(df, 5)
+    premium_threshold_2_pct = find_premium_threshold_alt(df, 2)
+
+    ls.append([symbol, premium_threshold_5_pct, premium_threshold_2_pct])
+
+df_thresholds = pd.DataFrame(ls, columns=['symbol', 'premium_threshold_5_pct', 'premium_threshold_2_pct'])
+# ----------------------------------------------------------------------
+
+df = load_trades('NVDA')
+
+symbol = 'LAC'
+
+df = load_trades(symbol)
+
+df = process_dataframe(df)
+
+df['exp_str'] = df['expiration_'].astype(str)
+
+df['date_str'] = df['date_'].astype(str)
+
+# premium_threshold = df_thresholds.query('symbol == "NVDA"')['premium_threshold_5_pct'].values[0]
+
+# premium_threshold = df_thresholds.query(f'symbol == "{symbol}"')['premium_threshold_5_pct'].values[0]
+
+premium_threshold = df_thresholds.query(f'symbol == "{symbol}"')['premium_threshold_2_pct'].values[0]
+
+df.query(f'premium > {premium_threshold}')[columns]
+
+len(df.query(f'premium > {premium_threshold}').query('date == 20240611')[columns])
+
+df[df['date'] == 20240617]
+
+df['date'].unique()
+
+# df_thresholds[df_thresholds['symbol'] == 'NVDA']
+
+# ----------------------------------------------------------------------
+
+# for symbol in symbols:
+#     print(symbol)
+
+#     df = load_trades(symbol)
+
+#     df['size'] = df['size'].astype(int)
+
+#     df['premium'] = df['size'] * df['price'] * 100
+
+#     df['premium'] = df['premium'].astype(int)
+
+#     # premium_threshold = find_premium_threshold_alt(df, 0.01)
+
+#     premium_threshold = find_premium_threshold_alt(df, 0.01)
+
+#     df = df.query(f'premium >= {premium_threshold}')
+
+#     df = process_dataframe(df)
+
+#     df['exp_str'] = df['expiration_'].astype(str)
+
+#     df['date_str'] = df['date_'].astype(str)
+
+#     if len(df.query('date == 20240621')) > 0:
+#         df.query('date == 20240621')[columns]
+
+
+
+
+
+
+# def test_alt():
+#     for symbol in symbols:
+#         print(symbol)
+
+#         df = load_trades(symbol)
+
+#         df['size'] = df['size'].astype(int)
+
+#         df['premium'] = df['size'] * df['price'] * 100
+
+#         df['premium'] = df['premium'].astype(int)
+
+#         # premium_threshold = find_premium_threshold_alt(df, 0.01)
+
+#         premium_threshold = find_premium_threshold_alt(df, 0.01)
+
+#         # df = df.query(f'premium >= {premium_threshold}')
+
+#         df = df.query(f'premium >= {premium_threshold}').copy()
+
+#         process_dataframe(df)
+
+
+# test_alt()
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def unusual_trades():
+#     for symbol in symbols:
+#         print(symbol)
+
+#         df = load_trades(symbol)
+
+#         df['size'] = df['size'].astype(int)
+
+#         df['premium'] = df['size'] * df['price'] * 100
+
+#         df['premium'] = df['premium'].astype(int)
+
+#         # premium_threshold = find_premium_threshold_alt(df, 0.01)
+
+#         premium_threshold = find_premium_threshold_alt(df, 0.01)
+
+#         df = df.query(f'premium >= {premium_threshold}')
+
+#         df = process_dataframe(df)
+
+#         # print('')
+
+#         # print('***')
+
+#         df['exp_str'] = df['expiration_'].astype(str)
+
+#         df['date_str'] = df['date_'].astype(str)
+
+#         if len(df.query('date == 20240621')) > 0:
+#             df.query('date == 20240621')[columns]
+
+# unusual_trades()
+        
+
+def unusual_trades(trade_date, pct_threshold):
+
+    for symbol in symbols:
+        # print(symbol)
+
+        df = load_trades(symbol)
+
+        df['size'] = df['size'].astype(int)
+
+        df['premium'] = df['size'] * df['price'] * 100
+
+        df['premium'] = df['premium'].astype(int)
+        
+        premium_threshold = find_premium_threshold_alt(df, pct_threshold)
+
+        df = df.query(f'premium >= {premium_threshold}').copy()
+
+        df = process_dataframe(df)
+
+        df['exp_str'] = df['expiration_'].astype(str)
+
+        df['date_str'] = df['date_'].astype(str)
+
+        result = df.query(f'date == {trade_date}')
+
+        if len(result) > 0:
+            print(result[columns])
+
+# unusual_trades(20240621, 0.01)
+
+
+
+
+# def unusual_trades(trade_date, pct_threshold):
+
+#     # dfs = []
+
+#     dfs = pd.DataFrame()
+
+#     for symbol in symbols:
+#         # print(symbol)
+
+#         df = load_trades(symbol)
+
+#         df['size'] = df['size'].astype(int)
+
+#         df['premium'] = df['size'] * df['price'] * 100
+
+#         df['premium'] = df['premium'].astype(int)
+        
+#         premium_threshold = find_premium_threshold_alt(df, pct_threshold)
+
+#         df = df.query(f'premium >= {premium_threshold}').copy()
+
+#         df = process_dataframe(df)
+
+#         df['exp_str'] = df['expiration_'].astype(str)
+
+#         df['date_str'] = df['date_'].astype(str)
+
+#         result = df.query(f'date == {trade_date}')
+
+#         if len(result) > 0:
+#             print(result[columns])
+
+#             # dfs.append(result)
+
+#             dfs = pd.concat([dfs, result])
+
+#     return dfs
+
+
+
+# result = unusual_trades(20240621, 0.01)
+
+# result[columns]
+
+# with open('unusual_trades_20240621.txt', 'w', encoding='utf-8') as f:
+#     f.write(result[columns].to_string())
