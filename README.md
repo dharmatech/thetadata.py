@@ -9,7 +9,7 @@ The dashboard is built using [streamlit](https://streamlit.io/).
 
 You'll need to have the 'Standard' options tier to run all the API calls in these modules.
 
-# Downoading options trades
+# Downloading options trades
 
 This will download and store all options trades on 2024-06-24:
 
