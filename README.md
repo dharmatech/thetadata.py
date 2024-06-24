@@ -20,3 +20,15 @@ This will download and store all options trades on 2024-06-24:
     streamlit run thetadata_streamlit.py
     
 
+# Unusual Trades
+
+Generate a list of unusual trades that occurred on 2024-06-21:
+
+    python -m unusual_trades 20240621
+
+For each stock that you have data for, this will filter down to the top 0.01% of trades. If any of these trades occurred on the trade date specified, they'll show up in the resulting report.
+
+The report will be in the file:
+
+    out/unusual_trades_20240621.csv
+
