@@ -32,3 +32,10 @@ The report will be in the file:
 
     out/unusual_trades_20240621.csv
 
+# Videos
+
+Video demo:
+
+https://x.com/dharmatrade/status/1802081916528755108
+
+https://x.com/dharmatrade/status/1805361167243821290
